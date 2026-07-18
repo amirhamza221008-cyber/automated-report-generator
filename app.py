@@ -1,26 +1,54 @@
 import streamlit as st
 import pandas as pd
-from data_analyzer import analyze
-from ai_summary import get_summary
-from chart_maker import make_chart
-from report_generator import create_pdf
+from chart_maker import create_bar_chart
+from ai_summary import generate_summary
+from report_generator import generate_report
+import os
 
-st.title("Automated Business Report Generator")
-st.caption("CSV upload karo → AI PDF report ready!")
+# Page title
+st.title("📊 Automated Business Report Generator")
+st.write("CSV file upload karo — automatic chart, summary aur PDF ban jayegi!")
 
-uploaded = st.file_uploader("Upload CSV/Excel", type=["csv", "xlsx"])
+# CSV upload
+uploaded_file = st.file_uploader("CSV file choose karo", type=["csv"])
 
-if uploaded:
-    df = pd.read_csv(uploaded)
-    st.dataframe(df.head())
-    
-    if st.button("Generate Report"):
-        with st.spinner("AI report bana raha hai..."):
-            stats = analyze(df)
-            summary = get_summary(stats)
-            chart = make_chart(df)
-            pdf_path = create_pdf(summary, chart)
-        
-        st.success("Report ready!")
-        with open(pdf_path, "rb") as f:
-            st.download_button("Download PDF", f, "report.pdf")
+if uploaded_file is not None:
+    # Data load karo
+    df = pd.read_csv(uploaded_file)
+    st.success(f"✅ File load ho gayi! {len(df)} records mile.")
+
+    # Data preview
+    st.subheader("📋 Data Preview")
+    st.dataframe(df.head(10))
+
+    # Generate button
+    if st.button("🚀 Report Generate Karo"):
+        with st.spinner("Report ban rahi hai..."):
+
+            # CSV save karo temporarily
+            temp_csv = "temp_upload.csv"
+            df.to_csv(temp_csv, index=False)
+
+            # Report generate karo
+            generate_report(temp_csv, output_path="report.pdf")
+
+            # Chart dikhao
+            st.subheader("📈 Power Consumption Chart")
+            st.image("chart.png")
+
+            # Summary dikhao
+            st.subheader("📝 Executive Summary")
+            summary = generate_summary(df)
+            st.write(summary)
+
+            # PDF download button
+            with open("report.pdf", "rb") as f:
+                st.download_button(
+                    label="📥 PDF Download Karo",
+                    data=f,
+                    file_name="business_report.pdf",
+                    mime="application/pdf"
+                )
+
+            # Temp file hatao
+            os.remove(temp_csv)
